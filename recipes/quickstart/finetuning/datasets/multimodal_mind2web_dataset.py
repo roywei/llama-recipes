@@ -504,45 +504,45 @@ class Mind2WebDataCollator:
     def __call__(self, samples):
         dialogs,images = [],[]
         for sample in samples:
-            neg_candidates = sample["neg_candidates"]
-
-            if len(sample["pos_candidates"]) != 0:
-                
-                pos_candidate = random.choice(sample["pos_candidates"])
-                neg_candidate = random.sample(
-                    neg_candidates,
-                    min(len(neg_candidates), self.num_candidates - 1),
-                )
-                gt = json.loads(pos_candidate)["backend_node_id"]
-                candidate_ids = [gt] + [json.loads(c)["backend_node_id"] for c in neg_candidate]
-                seq_context, seq_in, seq_out, _ = format_input_multichoice(
-                        sample, candidate_ids, gt
-                    )
-            else:
-                # ground truth is None of the above
-                neg_candidate = random.sample(
-                    neg_candidates,
-                    min(len(neg_candidates), self.num_candidates),
-                )
-                gt = -1
-                candidate_ids = [json.loads(c)["backend_node_id"] for c in neg_candidate]
-                seq_context, seq_in, seq_out, _ = format_input_multichoice(
-                        sample, candidate_ids, gt
-                    )
-
             try:
+                neg_candidates = sample["neg_candidates"]
+                if len(sample["pos_candidates"]) != 0:
+                    pos_candidate = random.choice(sample["pos_candidates"])
+                    neg_candidate = random.sample(
+                        neg_candidates,
+                        min(len(neg_candidates), self.num_candidates - 1),
+                    )
+                    gt = json.loads(pos_candidate)["backend_node_id"]
+                    candidate_ids = [gt] + [json.loads(c)["backend_node_id"] for c in neg_candidate]
+                    seq_context, seq_in, seq_out, _ = format_input_multichoice(
+                            sample, candidate_ids, gt
+                        )
+                else:
+                    # ground truth is None of the above
+                    neg_candidate = random.sample(
+                        neg_candidates,
+                        min(len(neg_candidates), self.num_candidates),
+                    )
+                    gt = -1
+                    candidate_ids = [json.loads(c)["backend_node_id"] for c in neg_candidate]
+                    seq_context, seq_in, seq_out, _ = format_input_multichoice(
+                            sample, candidate_ids, gt
+                        )
+
+                
                 image = sample["screenshot"].convert("RGB") 
+
+                dialog = [
+                    {"role":"user","content":[{"type": "image"},{"type": "text", "text": seq_in}]},
+                    {"role":"assistant","content":[{"type": "text", "text": seq_out}]}
+                ]
+                dialogs.append(dialog)
+                images.append([image])
+                # print(dialog)
             except:
-                print("Error in converting image to RGB, skip this sample")
+                print("Error processing sample, skiping")
                 continue
 
-            dialog = [
-                {"role":"user","content":[{"type": "image"},{"type": "text", "text": seq_in}]},
-                {"role":"assistant","content":[{"type": "text", "text": seq_out}]}
-            ]
-            dialogs.append(dialog)
-            images.append([image])
-        
         return tokenize_dialogs(dialogs,images, self.processor)
 
 def get_data_collator(processor):
