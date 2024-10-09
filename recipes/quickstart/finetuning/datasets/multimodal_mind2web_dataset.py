@@ -542,8 +542,13 @@ class Mind2WebDataCollator:
             except:
                 print("Error processing sample, skiping")
                 continue
-
-        return tokenize_dialogs(dialogs,images, self.processor)
+        
+        try:
+            batch = tokenize_dialogs(dialogs,images, self.processor)
+        except:
+            print("Error tokenizing dialogs")
+            return None
+        return batch
 
 def get_data_collator(processor):
     return Mind2WebDataCollator(processor)

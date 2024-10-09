@@ -345,8 +345,13 @@ def evaluation(model,train_config, eval_dataloader, local_rank, tokenizer, wandb
     val_step_perplexity = []
     eval_loss = 0.0  # Initialize evaluation loss
     total_eval_steps = 0
+    skipped_batches = 0
     with MemoryTrace() as memtrace:
         for step, batch in enumerate(tqdm(eval_dataloader,colour="green", desc="evaluating Epoch", dynamic_ncols=True)):
+            if batch is None:
+                print(f"Skipping evaluation batch {total_eval_steps} due to None value")
+                skipped_batches += 1
+                continue
             total_eval_steps += 1
             # stop when the maximum number of eval steps is reached
             if train_config.max_eval_step > 0 and total_eval_steps > train_config.max_eval_step:
@@ -384,7 +389,9 @@ def evaluation(model,train_config, eval_dataloader, local_rank, tokenizer, wandb
         dist.all_reduce(eval_loss, op=dist.ReduceOp.SUM)
 
     # Compute average loss and perplexity
-    eval_epoch_loss = eval_loss / len(eval_dataloader)
+    print("len of eval_dataloader is:",len(eval_dataloader))
+    print("skipped samples:", skipped_batches)
+    eval_epoch_loss = eval_loss / (len(eval_dataloader)-skipped_batches)
     if train_config.enable_fsdp:
         eval_epoch_loss = eval_epoch_loss/world_size
     eval_ppl = torch.exp(eval_epoch_loss)
