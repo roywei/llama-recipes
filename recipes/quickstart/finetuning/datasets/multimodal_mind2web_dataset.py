@@ -430,10 +430,14 @@ def tokenize_dialogs(dialogs, images, processor):
 
 def get_custom_dataset(dataset_config, processor, split, split_ratio=0.9):
     # load_dataset will return DatasetDict that contains all the data in the train set
-    dataset = load_dataset("osunlp/Multimodal-Mind2Web")
-
-    # rename test_task to test for finetuning.py
-    dataset['test'] = dataset['test_task']
+    dataset_dict = load_dataset("osunlp/Multimodal-Mind2Web")
+    # Select the appropriate split
+    if split == 'train':
+        dataset = dataset_dict['train']
+    elif split == 'test':
+        dataset = dataset_dict['test_task']
+    else:
+        raise ValueError(f"Invalid split: {split}")
     return dataset
 
 
