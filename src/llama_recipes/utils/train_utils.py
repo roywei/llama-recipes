@@ -352,35 +352,40 @@ def evaluation(model,train_config, eval_dataloader, local_rank, tokenizer, wandb
                 print(f"Skipping evaluation batch {total_eval_steps} due to None value")
                 skipped_batches += 1
                 continue
-            total_eval_steps += 1
-            # stop when the maximum number of eval steps is reached
-            if train_config.max_eval_step > 0 and total_eval_steps > train_config.max_eval_step:
-                if not train_config.enable_fsdp or local_rank==0:
-                    print("max eval steps reached, stopping evaluation, total_eval_steps: ", total_eval_steps - 1)
-                break
-            for key in batch.keys():
-                if train_config.enable_fsdp:
-                    batch[key] = batch[key].to(local_rank)
-                else:
-                    if is_xpu_available():
-                        batch[key] = batch[key].to('xpu:0')
+            try: 
+                total_eval_steps += 1
+                # stop when the maximum number of eval steps is reached
+                if train_config.max_eval_step > 0 and total_eval_steps > train_config.max_eval_step:
+                    if not train_config.enable_fsdp or local_rank==0:
+                        print("max eval steps reached, stopping evaluation, total_eval_steps: ", total_eval_steps - 1)
+                    break
+                for key in batch.keys():
+                    if train_config.enable_fsdp:
+                        batch[key] = batch[key].to(local_rank)
                     else:
-                        batch[key] = batch[key].to('cuda:0')
-            # Ensure no gradients are computed for this scope to save memory
-            with torch.no_grad():
-                # Forward pass and compute loss
-                outputs = model(**batch)
-                loss = outputs.loss
-                if train_config.save_metrics:
-                    val_step_loss.append(loss.detach().float().item())
-                    val_step_perplexity.append(float(torch.exp(loss.detach().float())))
+                        if is_xpu_available():
+                            batch[key] = batch[key].to('xpu:0')
+                        else:
+                            batch[key] = batch[key].to('cuda:0')
+                # Ensure no gradients are computed for this scope to save memory
+                with torch.no_grad():
+                    # Forward pass and compute loss
+                    outputs = model(**batch)
+                    loss = outputs.loss
+                    if train_config.save_metrics:
+                        val_step_loss.append(loss.detach().float().item())
+                        val_step_perplexity.append(float(torch.exp(loss.detach().float())))
 
-                eval_loss += loss.detach().float()
-            # Decode predictions and add to evaluation predictions list
-            preds = torch.argmax(outputs.logits, -1)
-            eval_preds.extend(
-                tokenizer.batch_decode(preds.detach().cpu().numpy(), skip_special_tokens=True)
-            )
+                    eval_loss += loss.detach().float()
+                # Decode predictions and add to evaluation predictions list
+                preds = torch.argmax(outputs.logits, -1)
+                eval_preds.extend(
+                    tokenizer.batch_decode(preds.detach().cpu().numpy(), skip_special_tokens=True)
+                )
+            except:
+                print(f"Error running eval, skipping batch: {total_eval_steps}")
+                skipped_batches += 1
+                continue
 
     # If there's more than one CUDA device, reduce evaluation loss across all devices
     if is_xpu_available() and (torch.xpu.device_count() > 1 and train_config.enable_fsdp):
