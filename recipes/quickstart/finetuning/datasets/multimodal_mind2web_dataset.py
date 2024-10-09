@@ -430,11 +430,10 @@ def tokenize_dialogs(dialogs, images, processor):
 
 def get_custom_dataset(dataset_config, processor, split, split_ratio=0.9):
     # load_dataset will return DatasetDict that contains all the data in the train set
-    dataset_dict = load_dataset("osunlp/Multimodal-Mind2Web")
+    dataset = load_dataset("osunlp/Multimodal-Mind2Web")
 
-    dataset = dataset_dict['train']
-    # Comment out the following line to use the full dataset, for quick testing only use 2000 samples
-    #dataset = dataset.select(range(2000))
+    # rename test_task to test for finetuning.py
+    dataset['test'] = dataset['test_task']
     return dataset
 
 
