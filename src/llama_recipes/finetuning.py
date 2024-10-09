@@ -56,6 +56,9 @@ from llama_recipes.utils.train_utils import (
 from accelerate.utils import is_xpu_available
 from warnings import warn
 
+import warnings
+warnings.filterwarnings("ignore")
+
 def setup_wandb(train_config, fsdp_config, **kwargs):
     try:
         import wandb
