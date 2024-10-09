@@ -20,7 +20,7 @@ class train_config:
     num_epochs: int=3
     max_train_step: int=0
     max_eval_step: int=0
-    num_workers_dataloader: int=1
+    num_workers_dataloader: int=16
     lr: float=1e-4
     weight_decay: float=0.0
     gamma: float= 0.85 # multiplicatively decay the learning rate by gamma after each epoch
