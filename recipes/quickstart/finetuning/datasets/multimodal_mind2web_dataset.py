@@ -434,6 +434,7 @@ def get_custom_dataset(dataset_config, processor, split, split_ratio=0.9):
     # Select the appropriate split
     if split == 'train':
         dataset = dataset_dict['train']
+        dataset = dataset.shuffle()
     elif split == 'test':
         dataset = dataset_dict['test_task']
     else:

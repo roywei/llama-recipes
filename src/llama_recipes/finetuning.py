@@ -265,6 +265,7 @@ def main(**kwargs):
     train_dataloader = torch.utils.data.DataLoader(
         dataset_train,
         num_workers=train_config.num_workers_dataloader,
+        prefetch_factor=2,
         pin_memory=True,
         **train_dl_kwargs,
     )
